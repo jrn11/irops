@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <title>Form App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .output-table td:first-child { white-space: nowrap; }
+    </style>
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }
+    </script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>KAL IROPS Report Form</h1>
+        <form id="myForm">
+        <div class="card mb-4">
+            <div class="card-header">
+                Identification
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Time of Occurrence (Zulu)</label>
+                            <div class="input-group">
+                                <input type="date" class="form-control" id="occurrenceDate">
+                                <input type="text" class="form-control" id="occurrenceTime" placeholder="HHMM" maxlength="4" oninput="this.value = this.value.replace(/\D/g, '').substring(0,4);" onblur="formatTime(this)">
+                                <button type="button" class="btn btn-outline-secondary" onclick="setNow()">Now</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customer" class="form-label">Customer</label>
+                            <select class="form-select" id="customer">
+                                <option value="">Select Customer</option>
+                                <option value="Government of Nunavut">Government of Nunavut</option>
+                                <option value="Manitoba Justice">Manitoba Justice</option>
+                                <option value="Manitoba Critical Care">Manitoba Critical Care</option>
+                                <option value="ADHOC">ADHOC</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="aircraft" class="form-label">Aircraft</label>
+                            <div class="input-group">
+                                <span class="input-group-text">C-</span>
+                                <input type="text" class="form-control" id="aircraft" maxlength="6" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0,6);">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location">
+                        </div>
+                        <div class="mb-3">
+                            <label for="nextDestination" class="form-label">Next Destination</label>
+                            <input type="text" class="form-control" id="nextDestination">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Patient Onboard</label><br>
+                            <input type="radio" id="patientYes" name="patient" value="Yes"> Yes
+                            <input type="radio" id="patientNo" name="patient" value="No"> No
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Crew Members</label>
+                            <div id="crewContainer">
+                                <div class="mb-2">
+                                    <div class="input-group">
+                                        <select class="form-select" id="crew-role-1" style="max-width: 130px;">
+                                            <option value="">Select Role</option>
+                                            <option value="Pilot">Pilot</option>
+                                            <option value="Medical">Medical</option>
+                                        </select>
+                                        <input type="text" class="form-control" id="crew-1" placeholder="Name">
+                                        <button type="button" class="btn btn-outline-danger" onclick="removeCrew(1)">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary" onclick="addCrew()">Add Crew Member</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header">
+                Description and Actions Taken
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">EMS/Police/ATC Advised</label><br>
+                        <input type="radio" id="advisedYes" name="advised" value="Yes"> Yes
+                        <input type="radio" id="advisedNo" name="advised" value="No"> No
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="medicalDescription" class="form-label">Medical IROP Description</label>
+                        <textarea class="form-control" id="medicalDescription" rows="3"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="iropDescription" class="form-label">IROP Description</label>
+                        <textarea class="form-control" id="iropDescription" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+            <button type="button" class="btn btn-primary" onclick="showReviewModal()">Submit Report</button>
+            <button type="button" class="btn btn-danger" onclick="showClearModal()">Clear Form</button>
+        </form>
+    </div>
+    <div style="height: 50px;"></div>
+    <div class="modal fade" id="clearModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Clear Form</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to clear the form? Any unsaved data will be lost. This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                    <button type="button" class="btn btn-danger" onclick="clearForm()">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="errorModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Submission Errors</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="errorMessages">
+                    <!-- Errors will be listed here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="reviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Review Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="reviewTable">
+                    <!-- Table will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Go Back</button>
+                    <button type="button" class="btn btn-primary" onclick="exportToClipboard(); $('#reviewModal').modal('hide');">Copy to Clipboard</button>
+                    <button type="button" class="btn btn-success" onclick="exportToPDF(); $('#reviewModal').modal('hide');">Export to PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        let crewCount = 1;
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function validateAndGetFields() {
+            // Clear previous warnings
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            const fields = [
+                { label: 'Time of Occurrence (Zulu)', value: `${document.getElementById('occurrenceDate').value} ${formatTimeValue(document.getElementById('occurrenceTime').value)}`.trim() },
+                { label: 'Customer', value: document.getElementById('customer').value },
+                { label: 'Aircraft', value: 'C-' + document.getElementById('aircraft').value }
+            ];
+
+            // Add crew
+            const crewInputs = document.querySelectorAll('input[id^="crew-"]');
+            if (crewInputs.length > 0) {
+                const crewValue = Array.from(crewInputs).map((input, index) => {
+                    const roleSelect = document.getElementById(`crew-role-${index + 1}`);
+                    const role = roleSelect.value;
+                    const name = input.value;
+                    return `${role} - ${name}`;
+                }).join('\n');
+                fields.push({ label: 'Crew', value: crewValue });
+            }
+
+            fields.push(
+                { label: 'Location', value: document.getElementById('location').value },
+                { label: 'Next Destination', value: document.getElementById('nextDestination').value },
+                { label: 'Patient Onboard', value: document.querySelector('input[name="patient"]:checked')?.value || '' },
+                { label: 'EMS/Police/ATC Advised', value: document.querySelector('input[name="advised"]:checked')?.value || '' },
+                { label: 'Medical IROP Description', value: document.getElementById('medicalDescription').value },
+                { label: 'IROP Description', value: document.getElementById('iropDescription').value }
+            );
+
+            return fields;
+        }
+
+        function addCrew() {
+            if (crewCount >= 8) {
+                alert('Maximum 8 crew members allowed.');
+                return;
+            }
+            crewCount++;
+            const container = document.getElementById('crewContainer');
+            const div = document.createElement('div');
+            div.className = 'mb-2';
+            div.innerHTML = `<div class="input-group">
+                                <select class="form-select" id="crew-role-${crewCount}" style="max-width: 130px;">
+                                    <option value="">Select Role</option>
+                                    <option value="Pilot">Pilot</option>
+                                    <option value="Medical">Medical</option>
+                                </select>
+                                <input type="text" class="form-control" id="crew-${crewCount}" placeholder="Name">
+                                <button type="button" class="btn btn-outline-danger" onclick="removeCrew(${crewCount})">Remove</button>
+                             </div>`;
+            container.appendChild(div);
+        }
+
+        function removeCrew(id) {
+            const input = document.getElementById(`crew-${id}`);
+            if (input) {
+                input.parentElement.remove();
+                crewCount--;
+            }
+        }
+
+        function setNow() {
+            const now = new Date();
+            const utcDate = now.getUTCDate();
+            const utcMonth = now.getUTCMonth();
+            const utcYear = now.getUTCFullYear();
+            const utcHours = now.getUTCHours();
+            const utcMinutes = now.getUTCMinutes();
+            const dateStr = `${utcYear}-${String(utcMonth + 1).padStart(2, '0')}-${String(utcDate).padStart(2, '0')}`;
+            const timeStr = `${String(utcHours).padStart(2, '0')}${String(utcMinutes).padStart(2, '0')}`;
+            document.getElementById('occurrenceDate').value = dateStr;
+            document.getElementById('occurrenceTime').value = timeStr;
+        }
+
+        function formatTime(input) {
+            let val = input.value.replace(/\D/g, '');
+            if (val.length === 4) {
+                input.value = val.substring(0, 2) + ':' + val.substring(2, 4);
+            } else if (val.length === 3) {
+                input.value = '0' + val.substring(0, 1) + ':' + val.substring(1, 3);
+            } else if (val.length === 2) {
+                input.value = val + ':00';
+            } else if (val.length === 1) {
+                input.value = '0' + val + ':00';
+            }
+        }
+
+        function formatTimeValue(val) {
+            val = val.replace(/\D/g, '');
+            if (val.length === 4) {
+                return val.substring(0, 2) + ':' + val.substring(2, 4);
+            } else if (val.length === 3) {
+                return '0' + val.substring(0, 1) + ':' + val.substring(1, 3);
+            } else if (val.length === 2) {
+                return val + ':00';
+            } else if (val.length === 1) {
+                return '0' + val + ':00';
+            } else {
+                return val;
+            }
+        }
+
+        function showClearModal() {
+            const modal = new bootstrap.Modal(document.getElementById('clearModal'));
+            modal.show();
+        }
+
+        let waiveWarnings = false;
+
+        function showErrorModal(issues, onWaive = null) {
+            const hasErrors = issues.some(i => i.type === 'error');
+            const errors = issues.filter(i => i.type === 'error');
+            const warnings = issues.filter(i => i.type === 'warning');
+            let html = '';
+            if (errors.length > 0) {
+                html += '<h5 class="text-danger">Required adjustments:</h5>';
+                html += errors.map(e => `<p class="text-danger">${e.message}</p>`).join('');
+            }
+            if (warnings.length > 0) {
+                html += '<h5 class="text-warning">Optional adjustments:</h5>';
+                html += warnings.map(w => `<p class="text-warning">${w.message}</p>`).join('');
+            }
+            document.getElementById('errorMessages').innerHTML = html;
+            const footer = document.querySelector('#errorModal .modal-footer');
+            if (hasErrors) {
+                footer.innerHTML = '<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Go Back</button>';
+            } else {
+                footer.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Go Back</button><button type="button" class="btn btn-warning" data-bs-dismiss="modal" onclick="waiveWarnings = true;">Waive Warnings and Continue</button>';
+            }
+            const modalEl = document.getElementById('errorModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+            if (onWaive) {
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                    if (waiveWarnings) {
+                        waiveWarnings = false;
+                        onWaive();
+                    }
+                }, { once: true });
+            }
+        }
+
+        function proceedToReview() {
+            const fields = validateAndGetFields();
+            const tableRows = fields.map(f => `<tr><td style="white-space: nowrap;"><strong>${escapeHtml(f.label)}</strong></td><td>${escapeHtml(f.value).replace(/\n/g, '<br>')}</td></tr>`).join('');
+            const table = `<table class="table table-bordered table-striped">
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>`;
+            document.getElementById('reviewTable').innerHTML = table;
+            const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+            modal.show();
+        }
+
+        function validateSubmission() {
+            const fields = validateAndGetFields();
+            const issues = [];
+
+            const timeField = fields.find(f => f.label === 'Time of Occurrence (Zulu)');
+            const patientField = fields.find(f => f.label === 'Patient Onboard');
+            const advisedField = fields.find(f => f.label === 'EMS/Police/ATC Advised');
+            const medicalDesc = document.getElementById('medicalDescription').value.trim();
+            const iropDesc = document.getElementById('iropDescription').value.trim();
+
+            if (!timeField || timeField.value === '') {
+                issues.push({ type: 'error', message: 'Time of Occurrence is required.' });
+            }
+            if (!patientField || patientField.value === '') {
+                issues.push({ type: 'error', message: 'Patient Onboard is required.' });
+            }
+            if (!advisedField || advisedField.value === '') {
+                issues.push({ type: 'error', message: 'EMS/Police/ATC Advised is required.' });
+            }
+            if (medicalDesc === '' && iropDesc === '') {
+                issues.push({ type: 'error', message: 'At least one description (Medical IROP or IROP) is required.' });
+            }
+
+            // Check for short descriptions
+            if (medicalDesc.length > 0 && medicalDesc.length <= 15) {
+                issues.push({ type: 'warning', message: 'Your Medical IROP Description seems short. Would you like to go back and add more information?' });
+            }
+            if (iropDesc.length > 0 && iropDesc.length <= 15) {
+                issues.push({ type: 'warning', message: 'Your IROP Description seems short. Would you like to go back and add more information?' });
+            }
+
+            // Warnings for optional fields
+            const aircraft = document.getElementById('aircraft').value.trim();
+            if (aircraft === '') {
+                issues.push({ type: 'warning', message: 'Aircraft is not specified.' });
+            }
+            const location = document.getElementById('location').value.trim();
+            if (location === '') {
+                issues.push({ type: 'warning', message: 'Location is not specified.' });
+            }
+            const nextDestination = document.getElementById('nextDestination').value.trim();
+            if (nextDestination === '') {
+                issues.push({ type: 'warning', message: 'Next Destination is not specified.' });
+            }
+            const crewInputs = document.querySelectorAll('input[id^="crew-"]');
+            const hasCrew = Array.from(crewInputs).some(input => input.value.trim() !== '');
+            if (!hasCrew) {
+                issues.push({ type: 'warning', message: 'No crew members are specified.' });
+            }
+
+            return issues;
+        }
+
+        function showReviewModal() {
+            const issues = validateSubmission();
+            if (issues.length > 0) {
+                showErrorModal(issues, proceedToReview);
+                return;
+            }
+
+            proceedToReview();
+        }
+
+        function clearForm() {
+            // Clear date and time
+            document.getElementById('occurrenceDate').value = '';
+            document.getElementById('occurrenceTime').value = '';
+
+            // Clear select
+            document.getElementById('customer').value = '';
+
+            // Clear inputs
+            document.getElementById('aircraft').value = '';
+            document.getElementById('location').value = '';
+            document.getElementById('nextDestination').value = '';
+
+            // Clear radios
+            document.querySelectorAll('input[name="patient"]').forEach(r => r.checked = false);
+            document.querySelectorAll('input[name="advised"]').forEach(r => r.checked = false);
+
+            // Clear textareas
+            document.getElementById('medicalDescription').value = '';
+            document.getElementById('iropDescription').value = '';
+
+            // Reset crew
+            const crewContainer = document.getElementById('crewContainer');
+            crewContainer.innerHTML = `<div class="mb-2">
+                                            <div class="input-group">
+                                                <select class="form-select" id="crew-role-1" style="max-width: 130px;">
+                                                    <option value="">Select Role</option>
+                                                    <option value="Pilot">Pilot</option>
+                                                    <option value="Medical">Medical</option>
+                                                </select>
+                                                <input type="text" class="form-control" id="crew-1" placeholder="Name">
+                                                <button type="button" class="btn btn-outline-danger" onclick="removeCrew(1)">Remove</button>
+                                            </div>
+                                        </div>`;
+            crewCount = 1;
+
+            // Clear validation
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            // Hide modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('clearModal'));
+            modal.hide();
+        }
+
+        function exportToClipboard() {
+            const issues = validateSubmission();
+            const errors = issues.filter(i => i.type === 'error');
+            if (errors.length > 0) {
+                document.getElementById('errorMessages').innerHTML = '<h5 class="text-danger">Required Fields:</h5>' + errors.map(e => `<p class="text-danger">${e.message}</p>`).join('');
+                const modal = new bootstrap.Modal(document.getElementById('errorModal'));
+                modal.show();
+                return;
+            }
+
+            const fields = validateAndGetFields();
+
+            let html = `<table border="1" style="border-collapse: collapse;"><tbody>`;
+            let text = ``;
+
+            fields.forEach(f => {
+                html += `<tr><td style="border: 1px solid black; padding: 8px; white-space: nowrap;"><strong>${escapeHtml(f.label)}</strong></td><td style="border: 1px solid black; padding: 8px;">${escapeHtml(f.value).replace(/\n/g, '<br>')}</td></tr>`;
+                text += `${f.label} | ${f.value}\n`;
+            });
+
+            html += `</tbody></table>`;
+
+            navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/html': new Blob([html], {type: 'text/html'}),
+                    'text/plain': new Blob([text], {type: 'text/plain'})
+                })
+            ]).then(() => {
+                alert('Copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                // Fallback to text only
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Copied text to clipboard!');
+                });
+            });
+        }
+
+        function exportToPDF() {
+            const issues = validateSubmission();
+            const errors = issues.filter(i => i.type === 'error');
+            if (errors.length > 0) {
+                document.getElementById('errorMessages').innerHTML = '<h5 class="text-danger">Required Fields:</h5>' + errors.map(e => `<p class="text-danger">${e.message}</p>`).join('');
+                const modal = new bootstrap.Modal(document.getElementById('errorModal'));
+                modal.show();
+                return;
+            }
+
+            const fields = validateAndGetFields();
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'letter');
+
+            doc.setFont('helvetica');
+            doc.setFontSize(18);
+            doc.text('KAL IROPS Report Form', doc.internal.pageSize.getWidth() / 2, 40, {align: 'center'});
+
+            const tableData = fields.map(f => [f.label, f.value]);
+
+            doc.autoTable({
+                head: [],
+                body: tableData,
+                startY: 60,
+                theme: 'plain',
+                styles: {
+                    font: 'helvetica',
+                    fontSize: 11,
+                    cellPadding: 5,
+                    lineColor: [0, 0, 0],
+                    lineWidth: 0.5,
+                },
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 180 },
+                    1: { cellWidth: 350 },
+                },
+                margin: {top: 60, left: 41, right: 41, bottom: 30},
+                didDrawPage: function(data) {
+                    const pageCount = doc.internal.getNumberOfPages();
+                    doc.setFontSize(9);
+                    doc.text('Page ' + data.pageNumber + ' of ' + pageCount, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 15, {align: 'center'});
+                },
+            });
+
+            doc.save('IROPSform.pdf');
+        }
+    </script>
+</body>
+</html>
